@@ -28,12 +28,13 @@
    :conf/pages
     [
       ;{:id 0 :type :conf/start}
+      {:id 0 :type :page/instruction :text "0. Appuyer sur e et i le plus rapidement possible"}
       {:id 1 :type :page/instruction :text "1. Appuyer sur e et i le plus rapidement possible"}
-      ;{:id 2 :type :page/block 
-      ; :label "Personnel seulement"
-      ; :times 1
-      ; :factors [{:factor {:conf/factor "Personnel"}:random false}]
-      ;}
+      {:id 2 :type :page/block
+       :label "Personnel seulement"
+       :times 2
+       :factors [{:factor {:conf/factor "Personnel"} :random true}]
+      }
       {:id 3 :type :page/instruction :text "2. Appuyer sur i et e le plus rapidement possible"}
       {:id 4 :type :page/block
        :label "Pouvoir seulement"
@@ -80,10 +81,15 @@
      (swap! state update-in
        [:state/page-index]
        inc)
-     (println state))})
+     )})
 
 ;; -----------------------------------------------------------------------------
 ;; Components
+
+(def reconciler
+  (om/reconciler
+    {:state  init-data
+     :parser (om/parser {:read read :mutate mutate})}))
 
 (defui Instruction
   static om/IQuery
@@ -92,12 +98,17 @@
   Object
   (render [this]
     (let [{:keys [text] :as props} (om/props this)]
+      (println this)
       (dom/div
-        #js {:onClick
+        #js {
+          :style #js {:padding 10 :borderBottom "1px solid blue"}
+          :tabIndex 0
+          :autoFocus true
+          :onKeyDown
           (fn [e]
-            ;;(when (== (.-which e) 32)
-              (om/transact! this
-                `[(page/next)]))}
+            (when (== (.-which e) 32)
+              (om/transact! reconciler
+                `[(page/next)])))}
         (dom/h1 nil "Consigne")
         (dom/p nil text)))))
 
@@ -131,7 +142,7 @@
   (render [this]
     (let [{:keys [id type favorites] :as props} (om/props this)]
       (dom/div
-        #js {:style #js {:padding 10 :borderBottom "1px solid black"}}
+        nil
         (dom/div nil
           (({:page/instruction    instruction
              :page/block          block} type)
@@ -149,11 +160,6 @@
     (let [{:keys [state/page-index conf/pages]} (om/props this)]
       (dom/div nil
         (page (pages page-index))))))
-
-(def reconciler
-  (om/reconciler
-    {:state  init-data
-     :parser (om/parser {:read read :mutate mutate})}))
 
 (om/add-root! reconciler
   RootView (gdom/getElement "app"))
