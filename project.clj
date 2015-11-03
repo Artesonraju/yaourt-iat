@@ -3,4 +3,13 @@
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "1.7.145"]
                  [org.omcljs/om "1.0.0-alpha9"]
-                 [figwheel-sidecar "0.4.0" :scope "provided"]])
+                 [figwheel-sidecar "0.4.0" :scope "provided"]]
+  :plugins [[lein-cljsbuild "1.0.3"]]
+  :cljsbuild {
+    :builds [{
+       :source-paths ["src"]
+       :compiler {:main 'iatrf-cljs.core
+                  :optimizations :advanced
+                  :output-to "resources/prod/js/main.js"
+                  :output-dir "resources/prod/js"
+                  :verbose true}}]})

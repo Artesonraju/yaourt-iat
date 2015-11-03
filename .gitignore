@@ -1,4 +1,4 @@
 resources/public/js
 figwheel_server.log
 target
-.lein
+.lein*
