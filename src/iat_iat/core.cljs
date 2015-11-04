@@ -1,58 +1,11 @@
-(ns iatrf-cljs.core
-  (:require [goog.dom :as gdom]
+(ns ^:figwheel-always iat-iat.core
+ (:require [goog.dom :as gdom]
             [om.next :as om :refer-macros [defui]]
             [om.dom :as dom]
+            [iat-iat.conf :refer [conf]]
             [testdouble.cljs.csv :as csv]))
 
 (enable-console-print!)
-
-(def conf
-    {:keys {
-      :instruction 32
-      :left 69
-      :right 73
-      }
-     :times {
-      :label 1000
-      :cross 500
-      :transition 250
-      }
-     :factors {
-      "personnel"
-      {:random false
-       :color "#4F5"
-       :categories {
-        "moi" #{"je"}
-        "autrui" #{"eux"}
-        }
-      }
-      "pouvoir"
-      {:random true
-       :color "#FFF"
-       :categories {
-        "dominance" #{"fort"}
-        "soumission" #{"faible"}
-       }
-      }
-    }
-   :intro "Merci de nous accorder un peu de votre temps."
-   :end "Et voilà, c'est fini."
-   :blocks
-    [
-      {:instruction "3. Appuyer sur e et i le plus rapidement possible"
-       :label "Personnel et pouvoir"
-       :factors ["personnel" "pouvoir"]
-      }
-      {:instruction "1. Appuyer sur e et i le plus rapidement possible"
-       :label "personnel"
-       :factors ["personnel"]
-      }
-      {:instruction "2. Appuyer sur e et i le plus rapidement possible"
-       :label "pouvoir"
-       :factors ["pouvoir"]
-      }
-    ]
-  })
 
 ;; -----------------------------------------------------------------------------
 ;; Deriving conf to data
@@ -88,6 +41,7 @@
     (apply concat (for [[k s] (factor :categories)]
         (map #(identity {:colors colors
                          :target %
+                         :color (factor :color)
                          :category k
                          :factor name}) s)))))
 
@@ -154,13 +108,13 @@
 
 (defmulti mutate om/dispatch)
 
-;; -----------------------------------------------------------------------------
-;; Components
-
 (def reconciler
   (om/reconciler
     {:state  (init-data conf)
      :parser (om/parser {:read read :mutate mutate})}))
+
+;; -----------------------------------------------------------------------------
+;; Components
 
 (defui Intro
   static om/IQuery
@@ -203,6 +157,11 @@
 
 (def instruction (om/factory Instruction))
 
+(defn render-categories
+  [class items colors]
+  (dom/div #js {:className class}
+    (map #(dom/p #js {:className "item" :style #js {:color %1}} %2) colors items)))
+
 (defui Label
   static om/IQuery
   (query [this]
@@ -211,10 +170,8 @@
   (render [this]
     (let [{:keys [left right colors] :as props} (om/props this)]
       (dom/div nil
-        (dom/div #js {:className "left"}
-          (map #(dom/p #js {:className "item" :style #js {:color %1}} %2) colors left))
-        (dom/div #js {:className "right"}
-          (map #(dom/p #js {:className "item" :style #js {:color %1}} %2) colors right))))))
+        (render-categories "left" left colors)
+        (render-categories "right" right colors)))))
 
 (def label (om/factory Label))
 
@@ -226,10 +183,8 @@
   (render [this]
     (let [{:keys [left right colors] :as props} (om/props this)]
       (dom/div nil
-        (dom/div #js {:className "left"}
-          (map #(dom/p #js {:className "item" :style #js {:color %1}} %2) colors left))
-        (dom/div #js {:className "right"}
-          (map #(dom/p #js {:className "item" :style #js {:color %1}} %2) colors right))
+        (render-categories "left" left colors)
+        (render-categories "right" right colors)
         (dom/div #js {:className "centred"}
           (dom/p #js {:className "item"} "+"))))))
 
@@ -238,34 +193,30 @@
 (defui Target
   static om/IQuery
   (query [this]
-    [:id :target :type :left :right :category :factor :expected :colors])
+    [:id :target :type :left :right :category :factor :expected :colors :color])
   Object
   (render [this]
-    (let [{:keys [left right target colors] :as props} (om/props this)]
+    (let [{:keys [left right target colors color] :as props} (om/props this)]
       (dom/div nil
-        (dom/div #js {:className "left"}
-          (map #(dom/p #js {:className "item" :style #js {:color %1}} %2) colors left))
-        (dom/div #js {:className "right"}
-          (map #(dom/p #js {:className "item" :style #js {:color %1}} %2) colors right))
+        (render-categories "left" left colors)
+        (render-categories "right" right colors)
         (dom/div #js {:className "centred"}
-          (dom/p #js {:className "item"} target))))))
+          (dom/p #js {:className "item" :style #js {:color color}} target))))))
 
 (def target (om/factory Target))
 
 (defui Wrong
   static om/IQuery
   (query [this]
-    [:id :target :type :left :right :category :factor :expected :colors])
+    [:id :target :type :left :right :category :factor :expected :colors :color])
   Object
   (render [this]
-    (let [{:keys [left right target colors] :as props} (om/props this)]
+    (let [{:keys [left right target colors color] :as props} (om/props this)]
       (dom/div nil
-        (dom/div #js {:className "left"}
-          (map #(dom/p #js {:className "item" :style #js {:color %1}} %2) colors left))
-        (dom/div #js {:className "right"}
-          (map #(dom/p #js {:className "item" :style #js {:color %1}} %2) colors right))
+        (render-categories "left" left colors)
+        (render-categories "right" right colors)
         (dom/div #js {:className "centred"}
-          (dom/p #js {:className "item"} target))
+          (dom/p #js {:className "item" :style #js {:color color}} target))
         (dom/div #js {:className "top-centred"}
           (dom/p #js {:className "item" :style #js {:color "#f00"}} "X"))))))
 
