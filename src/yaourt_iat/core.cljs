@@ -1,120 +1,75 @@
-(ns ^:figwheel-always iat-iat.core
- (:require [goog.dom :as gdom]
+(ns yaourt-iat.core
+  (:require [goog.dom :as gdom]
             [om.next :as om :refer-macros [defui]]
-            [om.dom :as dom]
-            [iat-iat.conf :refer [conf]]
-            [testdouble.cljs.csv :as csv]))
+            [yaourt-iat.util :as util]
+            [yaourt-iat.conf :refer [conf]]
+            [om.dom :as dom]))
 
 (enable-console-print!)
-
-;; -----------------------------------------------------------------------------
-;; Deriving conf to data
-
-(defn fixed-left-right
-  [length factor]
-  (repeat length {:left [(factor :left)] :right [(factor :right)]}))
-
-(defn random-left-right
-  [length categories]
-  (let [items [{:left [(first categories)] :right [(second categories)]}
-               {:right [(first categories)] :left [(second categories)]}]]
-    (if (even? length)
-      (shuffle (mapcat #(repeat (/ length 2) %) items))
-      (rest (shuffle (mapcat #(repeat (+ (/ length 2) 1) %) items))))))
-
-(defn shuffle-left-right
-  [length factor]
-  (if (factor :random)
-    (random-left-right length (keys (factor :categories)))
-    (fixed-left-right length factor)))
-
-(defn assoc-left-right
-  [fs bfs steps]
-  (let [left-rights (map #(shuffle-left-right (count steps) (fs %)) bfs)
-        merged (apply map (partial merge-with concat) left-rights)]
-    (map merge steps merged)))
-
-(defn build-words [factors name]
-  (let [factor (factors name)
-        colors (map #(% :color) (vals factors))
-        categories (keys (factor :categories))]
-    (apply concat (for [[k s] (factor :categories)]
-        (map #(identity {:colors colors
-                         :target %
-                         :color (factor :color)
-                         :category k
-                         :factor name}) s)))))
-
-(defn assoc-expected [step]
-  (assoc step :expected
-    (if (some #(= (step :category) %) (step :right))
-      :right
-      :left)))
-  
-(defn build-factor
-  [factors name block-factors]
-  (->> (build-words factors name)
-       (assoc-left-right factors block-factors)
-       (map assoc-expected)))
-
-(defn add-ids
-  [coll]
-  (map-indexed (fn [id v] (assoc v :id id)) coll))
-
-(defn build-block
-  [factors block]
-  (let [block-factors (block :factors)
-        fs (select-keys factors block-factors)
-        steps (shuffle (apply concat (for [[n _] fs] (build-factor fs n block-factors))))]
-    (concat [{:type :page/instruction :text (block :instruction)}]
-                      (mapcat (juxt #(assoc % :type :page/label)
-                                    #(assoc % :type :page/cross)
-                                    #(assoc % :type :page/target)
-                                    #(assoc % :type :page/wrong)
-                                    #(assoc % :type :page/transition))
-                                    steps))))
-
-(defn fix-factors
-  [factors]
-  (into {} (for [[k v] factors]
-             (if (v :random)
-               [k v]
-               [k (merge v (zipmap (shuffle [:left :right]) (keys (v :categories))))]))))
-
-(defn init-data
-  [conf]
-  (let [factors (fix-factors (conf :factors))
-        steps (mapcat (partial build-block factors) (conf :blocks))
-        intro {:type :page/intro :text (conf :intro)}
-        end {:type :page/end :text (conf :end)}
-        pages (into [] (add-ids (concat [intro] steps [end])))]
-    identity {:page/pages pages
-              :page/current 0}))
-
-;; -----------------------------------------------------------------------------
-;; Parsing
 
 (defmulti read om/dispatch)
 
 (defmethod read :page/current
-  [{:keys [state]} k _]
+  [{:keys [state] :as env} _ {:keys [remote?]}]
   (let [st @state]
-    {:value (st k)}))
+    (if-let [v (get st :page/current)]
+      {:value v :remote true}
+      {:remote true})))
 
 (defmethod read :page/pages
-  [{:keys [state]} k _]
+  [{:keys [state] :as env} _ {:keys [remote?]}]
   (let [st @state]
-    {:value (into [] (map #(get-in st %)) (get st k))}))
+    (if-let [v (get st :page/pages)]
+      {:value (into [] (map #(get-in st %)) v) :remote true}
+      {:remote true})))
 
 (defmulti mutate om/dispatch)
 
-(def reconciler
-  (om/reconciler
-    {:state  (init-data conf)
-     :parser (om/parser {:read read :mutate mutate})}))
-
 ;; -----------------------------------------------------------------------------
 ;; Components
+
+(defui Word
+  static om/IQuery
+  (query [this]
+    [:type :value])
+  Object
+  (render [this]
+    (let [[_ value] (om/props this)]
+      (dom/p #js {:className "item"} value))))
+
+(def word (om/factory Word))
+
+(defui Image
+  static om/IQuery
+  (query [this]
+    [:type :value])
+  Object
+  (render [this]
+    (let [[_ value] (om/props this)]
+        (dom/img
+          #js {:src value}))))
+
+(def image (om/factory Image))
+
+(defui Item
+  static om/Ident
+  (ident [this {:keys [type value]}]
+    [type value])
+  static om/IQuery
+  (query [this]
+    {:target/word (om/get-query Word)
+     :target/image (om/get-query Image)
+     })
+  Object
+  (render [this]
+    (let [[type value] (om/props this)]
+        (dom/div nil
+          (({:target/word   word
+             :target/image  image
+            } type)
+            (om/props this))))))
+
+(def item (om/factory Item))
 
 (defui Intro
   static om/IQuery
@@ -123,6 +78,7 @@
   Object
   (render [this]
     (let [{:keys [text] :as props} (om/props this)]
+      (println "Intro" props)
       (dom/div #js {:className "centred"}
         (dom/h1 nil "Bienvenue !")
         (dom/p nil text)
@@ -152,8 +108,7 @@
     (let [{:keys [text] :as props} (om/props this)]
       (dom/div #js {:className "centred"}
         (dom/h1 nil "Consigne")
-        (dom/p nil text)
-        (dom/p nil "Appuyez 'Espace' pour continuer")))))
+          (map #(dom/p nil %) text)))))
 
 (def instruction (om/factory Instruction))
 
@@ -165,7 +120,7 @@
 (defui Label
   static om/IQuery
   (query [this]
-    [:id :target :type :left :right :category :factor :expected :colors])
+    [:id :type :left :right :colors])
   Object
   (render [this]
     (let [{:keys [left right colors] :as props} (om/props this)]
@@ -178,7 +133,7 @@
 (defui Cross
   static om/IQuery
   (query [this]
-    [:id :target :type :left :right :category :factor :expected :colors])
+    [:id :type :left :right :colors])
   Object
   (render [this]
     (let [{:keys [left right colors] :as props} (om/props this)]
@@ -193,30 +148,30 @@
 (defui Target
   static om/IQuery
   (query [this]
-    [:id :target :type :left :right :category :factor :expected :colors :color])
+    [:id :type :left :right :category :factor :expected :colors :color {:target (om/get-query Item)}])
   Object
   (render [this]
     (let [{:keys [left right target colors color] :as props} (om/props this)]
       (dom/div nil
         (render-categories "left" left colors)
         (render-categories "right" right colors)
-        (dom/div #js {:className "centred"}
-          (dom/p #js {:className "item" :style #js {:color color}} target))))))
+        (dom/div #js {:className "centred" :style #js {:color color}}
+          (item target))))))
 
 (def target (om/factory Target))
 
 (defui Wrong
   static om/IQuery
   (query [this]
-    [:id :target :type :left :right :category :factor :expected :colors :color])
+    [:id :type :left :right :colors :color :expected {:target (om/get-query Item)}])
   Object
   (render [this]
     (let [{:keys [left right target colors color] :as props} (om/props this)]
       (dom/div nil
         (render-categories "left" left colors)
         (render-categories "right" right colors)
-        (dom/div #js {:className "centred"}
-          (dom/p #js {:className "item" :style #js {:color color}} target))
+        (dom/div #js {:className "centred" :style #js {:color color}}
+          (item target))
         (dom/div #js {:className "top-centred"}
           (dom/p #js {:className "item" :style #js {:color "#f00"}} "X"))))))
 
@@ -225,11 +180,10 @@
 (defui Transition
   static om/IQuery
   (query [this]
-    [:id :target :type :left :right :category :factor :expected])
+    [:id :type])
   Object
   (render [this]
-    (let [{:keys [target] :as props} (om/props this)]
-      (dom/h1 nil nil))))
+      (dom/h1 nil nil)))
 
 (def transition (om/factory Transition))
 
@@ -249,9 +203,7 @@
      :page/end (om/get-query End)})
   Object
   (render [this]
-    (let [{:keys [id type favorites] :as props} (om/props this)]
-      (dom/div
-        nil
+    (let [{:keys [id type] :as props} (om/props this)]
         (dom/div nil
           (({:page/intro          intro
              :page/instruction    instruction
@@ -261,7 +213,7 @@
              :page/wrong          wrong
              :page/transition     transition
              :page/end            end} type)
-            (om/props this)))))))
+            (om/props this))))))
 
 (def page (om/factory Page))
 
@@ -271,28 +223,43 @@
     [:page/current {:page/pages (om/get-query Page)}])
   Object
   (render [this]
-    (println "Render RootView")
     (let [{:keys [page/current page/pages]} (om/props this)]
       (dom/div nil
         (page (pages current))))))
+
+;; -----------------------------------------------------------------------------
+;; Reconciler
+
+(def parser (om/parser {:read read :mutate mutate}))
+
+(def reconciler
+  (om/reconciler
+    {:state {}
+     :parser parser
+     :send (util/transit-conf)}))
+
+(om/add-root! reconciler RootView (gdom/getElement "app"))
 
 (defonce key-listener
   (.addEventListener
     js/document
     "keydown" 
     (fn [e]
-      ()
       (om/transact! (om/class->any reconciler RootView)
         `[(user/click ~{:keycode (.-which e)})]))))
 
-(om/add-root! reconciler
-  RootView (gdom/getElement "app"))
-
 ;; -----------------------------------------------------------------------------
-;; Dispatch
+;; Dispatch mutate
+
+(defmethod mutate 'app/update-title
+  [{:keys [state]} _ {:keys [new-title]}]
+  {:remote true
+   :value [:app/title]
+   :action (fn [] (swap! state assoc :app/title new-title))})
 
 (defn init-result [state]
-  (assoc state :result [["left" "right" "target" "factor" "category" "expected" "response" "time"]]))
+  (merge state {:results [["left" "right" "target" "factor" "category" "expected" "response" "time"]]
+                :page/count (count (:page/pages state))}))
 
 (defn next-page [state]
   (update-in state [:page/current] inc))
@@ -327,7 +294,7 @@
         result (= (page :expected) side)
         s (update
             state
-            :result
+            :results
             #(concat % [[(page :left)
                          (page :right)
                          (page :target)
@@ -351,6 +318,7 @@
 
 (defn wrong-answer
   [side page state]
+  (println side page)
   (if (= (page :expected) side)
     (do 
       (set-timeout (get-in conf [:times :transition]))
@@ -393,12 +361,16 @@
 
 (defmethod dispatch-timeout [:page/transition]
   [page state]
-  (set-timeout (get-in conf [:times :label]))
+  (let [current (:page/current state)
+        count (:page/count state)]
+    (if (< current (- count 2))
+      (set-timeout (get-in conf [:times :transition]))
+      (set-timeout 0)))
   (next-page state))
 
 (defmethod dispatch-timeout [:page/end]
   [page state]
-  (println (state :result))
+  (util/transit-results (state :results))
   state)
 
 (defn manage-timeout [state]

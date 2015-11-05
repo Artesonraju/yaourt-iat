@@ -1,0 +1,70 @@
+{
+  :factors {
+    "personnel" {
+      :random true
+      :color "#4F5"
+      :categories {
+        "MOI" {
+          :target/word #{"je"}
+        }
+        "AUTRUI" {
+          :target/word #{"eux"}
+        }
+      }
+    }
+    "pouvoir" {
+      :random false
+      :color "#FFF"
+      :categories {
+        "DOMINANCE" {
+          :target/word #{"fort"}
+          :target/image #{"/img/strong-spongebob.gif"}
+        }
+        "SOUMISSION" {
+          :target/word #{"faible"}
+          :target/image #{"/img/ashamed-dog.gif"}
+        }
+      }
+    }
+  }
+  :intro "Merci de nous accorder un peu de votre temps."
+  :end "Et voilà, c'est fini."
+  :blocks [
+    {
+      :label "personnel"
+      :factors ["personnel"]
+      :times 1
+      :instruction [
+        "Placez vos index sur les touches D et L du clavier. Des mots appartenant aux catégories en haut vont apparaitre un à un au milieu de l’écran. Lorsque l’item appartient à la catégorie de gauche, appuyez sur la touche D, lorsque l’item appartient à la catégorie de droite, appuyez sur la touche L. Les items ne peuvent appartenir qu’à une catégorie."
+        "Si vous faites une erreur, un message d’erreur apparaitra. Corrigez votre erreur en appuyant sur l’autre touche."
+        "Cette tâche est chronométrée. ALLEZ LE PLUS VITE POSSIBLE en faisant le moins d’erreurs. Une réalisation trop lente de la tâche, ou un nombre trop élevé d’erreur rendra le score ininterprétable. Cette tâche dure environ 5 minutes."
+        "Appuyer sur ESPACE pour commencer."
+      ]
+    }
+    {
+      :label "pouvoir"
+      :factors ["pouvoir"]
+      :times 1
+      :instruction [
+        "Les catégories du haut ont changé, ainsi que les items. Les instructions restent les mêmes, cependant les catégories changeront de place aléatoirement entre les essais."
+        "Lorsque l’item appartient à la catégorie de gauche, appuyez sur la touche D, lorsque l’item appartient à la catégorie de droite, appuyez sur la touche L. Les items ne peuvent appartenir qu’à une catégorie."
+        "Si vous faites une erreur, un message d’erreur apparaitra. Corrigez votre erreur en appuyant sur l’autre touche." 
+        "Cette tâche est chronométrée. ALLEZ LE PLUS VITE POSSIBLE en faisant le moins d’erreurs."
+        "Appuyer sur ESPACE pour commencer."
+      ]
+    }
+    {
+      :label "Personnel et pouvoir"
+      :factors ["personnel" "pouvoir"]
+      :times 1
+      :instruction [
+        "Les quatre catégories vues précédemment apparaissent maintenant ensemble. Rappelez-vous qu’un item ne correspond qu’à une catégorie. De nouveau, les catégories MOI et AUTRUI changeront de place aléatoirement entre les essais."
+        "La couleur des items et des catégories peuvent vous aider à identifier la bonne catégorie."
+        "Appuyer sur ESPACE pour commencer."
+        ]
+      }
+  ]
+  :server {
+    :csv-path "/tmp/"
+  }
+}
