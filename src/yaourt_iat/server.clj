@@ -1,4 +1,5 @@
 (ns yaourt-iat.server
+  (:gen-class)
   (:require [clojure.java.io :as io]
             [clojure.data.csv :as csv]
             [ring.middleware.resource :refer [wrap-resource]]
@@ -6,15 +7,14 @@
             [ring.middleware.reload :refer [wrap-reload]]
             [yaourt-iat.middleware :refer [wrap-transit-response wrap-transit-params]]
             [om.next.server :as om]
-            [bidi.bidi :as bidi]))
+            [bidi.bidi :as bidi]
+            [org.httpkit.server :refer [run-server]]))
 
 (defn load-edn [filename]
   (with-open [r (io/reader filename)]
     (read (java.io.PushbackReader. r))))
 
-(def conf (load-edn "resources/conf/conf.edn"))
-
-(println conf)
+(def conf (atom (load-edn "resources/conf/conf.edn")))
 
 (def routes
   ["" {"/" :index
@@ -34,7 +34,6 @@
 (defn uuid [] (str (java.util.UUID/randomUUID)))
 
 (defn api-results [req]
-  (println (:transit-params req))
   (with-open [uuidfile (io/writer (str (:csv-path (:server conf))
                                        (.format (java.text.SimpleDateFormat. "yyyy-MM-dd") (java.util.Date.))
                                        "-"(uuid)))]
@@ -50,13 +49,21 @@
                                 :request-method (:request-method req))]
     (case (:handler match)
       :index nil
-      :conf (api-conf (assoc req :conf conf))
+      :conf (api-conf (assoc req :conf @conf))
       :results (api-results req)
       nil)))
 
 (def app
-  (-> handler
-      (wrap-resource "public")
-      wrap-reload
-      wrap-transit-response
-      wrap-transit-params))
+    (-> handler
+        (wrap-resource "public")
+        wrap-reload
+        wrap-transit-response
+        wrap-transit-params))
+
+(defn -main [& [port config-file]]
+  (let [port (Integer. (or port 10555))
+        config-file (or config-file (io/resource "conf/conf.edn"))]
+    (reset! conf (load-edn config-file))
+    (println @conf)
+    (println (format "Starting web server on port %d." port))
+    (run-server app {:port port :join? false})))

@@ -295,14 +295,15 @@
         s (update
             state
             :results
-            #(concat % [[(page :left)
-                         (page :right)
+            #(concat % [[(into [] (page :left))
+                         (into [] (page :right))
                          (page :target)
                          (page :factor)
                          (page :category)
                          (page :expected)
                          result
                          response-time]]))]
+    (println (into [] (page :left)))
     (if result
       (do 
         (set-timeout (get-in conf [:times :transition]))
@@ -318,7 +319,6 @@
 
 (defn wrong-answer
   [side page state]
-  (println side page)
   (if (= (page :expected) side)
     (do 
       (set-timeout (get-in conf [:times :transition]))

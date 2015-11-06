@@ -11,4 +11,18 @@
                  [com.cognitect/transit-cljs "0.8.225"]
                  [cljs-http "0.1.30" :exclusions
                   [org.clojure/clojure org.clojure/clojurescript
-                   com.cognitect/transit-cljs]]])
+                   com.cognitect/transit-cljs]]
+                 [http-kit "2.1.19"]]
+  :source-paths ["src"]
+  :plugins [[lein-cljsbuild "1.1.0"]]
+  :hooks [leiningen.cljsbuild]
+  :omit-source true
+  :aot :all
+  :main yaourt-iat.server
+  :cljsbuild {
+    :builds [{
+          :source-paths ["src"]
+          :compiler {
+            :output-to "resources/public/js/main.js"
+            :optimizations :whitespace
+            :pretty-print true}}]})
