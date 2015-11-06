@@ -12,7 +12,8 @@
                  [cljs-http "0.1.30" :exclusions
                   [org.clojure/clojure org.clojure/clojurescript
                    com.cognitect/transit-cljs]]
-                 [http-kit "2.1.19"]]
+                 [http-kit "2.1.19"]
+                 [clj-aws-s3 "0.3.10"]]
   :source-paths ["src"]
   :plugins [[lein-cljsbuild "1.1.0"]]
   :hooks [leiningen.cljsbuild]
@@ -24,5 +25,5 @@
           :source-paths ["src"]
           :compiler {
             :output-to "resources/public/js/main.js"
-            :optimizations :whitespace
-            :pretty-print true}}]})
+            :optimizations :simple
+            :pretty-print false}}]})

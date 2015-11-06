@@ -28,19 +28,8 @@
     }
   }
   :intro "Merci de nous accorder un peu de votre temps."
-  :end "Et voilà, c'est fini."
+  :end "Et voilà, c'est fini. Merci."
   :blocks [
-    {
-      :label "personnel"
-      :factors ["personnel"]
-      :times 1
-      :instruction [
-        "Placez vos index sur les touches D et L du clavier. Des mots appartenant aux catégories en haut vont apparaitre un à un au milieu de l’écran. Lorsque l’item appartient à la catégorie de gauche, appuyez sur la touche D, lorsque l’item appartient à la catégorie de droite, appuyez sur la touche L. Les items ne peuvent appartenir qu’à une catégorie."
-        "Si vous faites une erreur, un message d’erreur apparaitra. Corrigez votre erreur en appuyant sur l’autre touche."
-        "Cette tâche est chronométrée. ALLEZ LE PLUS VITE POSSIBLE en faisant le moins d’erreurs. Une réalisation trop lente de la tâche, ou un nombre trop élevé d’erreur rendra le score ininterprétable. Cette tâche dure environ 5 minutes."
-        "Appuyer sur ESPACE pour commencer."
-      ]
-    }
     {
       :label "pouvoir"
       :factors ["pouvoir"]
@@ -50,6 +39,17 @@
         "Lorsque l’item appartient à la catégorie de gauche, appuyez sur la touche D, lorsque l’item appartient à la catégorie de droite, appuyez sur la touche L. Les items ne peuvent appartenir qu’à une catégorie."
         "Si vous faites une erreur, un message d’erreur apparaitra. Corrigez votre erreur en appuyant sur l’autre touche." 
         "Cette tâche est chronométrée. ALLEZ LE PLUS VITE POSSIBLE en faisant le moins d’erreurs."
+        "Appuyer sur ESPACE pour commencer."
+      ]
+    }
+    {
+      :label "personnel"
+      :factors ["personnel"]
+      :times 1
+      :instruction [
+        "Placez vos index sur les touches D et L du clavier. Des mots appartenant aux catégories en haut vont apparaitre un à un au milieu de l’écran. Lorsque l’item appartient à la catégorie de gauche, appuyez sur la touche D, lorsque l’item appartient à la catégorie de droite, appuyez sur la touche L. Les items ne peuvent appartenir qu’à une catégorie."
+        "Si vous faites une erreur, un message d’erreur apparaitra. Corrigez votre erreur en appuyant sur l’autre touche."
+        "Cette tâche est chronométrée. ALLEZ LE PLUS VITE POSSIBLE en faisant le moins d’erreurs. Une réalisation trop lente de la tâche, ou un nombre trop élevé d’erreur rendra le score ininterprétable. Cette tâche dure environ 5 minutes."
         "Appuyer sur ESPACE pour commencer."
       ]
     }

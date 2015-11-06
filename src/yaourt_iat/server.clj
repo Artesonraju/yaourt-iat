@@ -2,13 +2,14 @@
   (:gen-class)
   (:require [clojure.java.io :as io]
             [clojure.data.csv :as csv]
-            [ring.middleware.resource :refer [wrap-resource]]
+            [ring.middleware.resource :refer [wrap-resource resource-request]]
             [ring.util.response :refer [response file-response resource-response]]
             [ring.middleware.reload :refer [wrap-reload]]
             [yaourt-iat.middleware :refer [wrap-transit-response wrap-transit-params]]
             [om.next.server :as om]
             [bidi.bidi :as bidi]
-            [org.httpkit.server :refer [run-server]]))
+            [org.httpkit.server :refer [run-server]]
+            [aws.sdk.s3 :as s3]))
 
 (defn load-edn [filename]
   (with-open [r (io/reader filename)]
@@ -33,11 +34,26 @@
 
 (defn uuid [] (str (java.util.UUID/randomUUID)))
 
+(defn file-save [server-conf name content]
+  (with-open [uuidfile (io/writer (str (:csv-path server-conf) name))]
+    (csv/write-csv uuidfile content)))
+
+(defn s3-save [server-conf name content]
+  (let [cred (select-keys (:s3-cred server-conf) [:access-key :secret-key])
+        bucket (:bucket (:s3-cred server-conf))
+        writer (java.io.StringWriter.)
+        string (do (csv/write-csv writer content)
+            (.toString writer))]
+    (s3/put-object cred bucket name string)))
+
 (defn api-results [req]
-  (with-open [uuidfile (io/writer (str (:csv-path (:server conf))
-                                       (.format (java.text.SimpleDateFormat. "yyyy-MM-dd") (java.util.Date.))
-                                       "-"(uuid)))]
-    (csv/write-csv uuidfile (into [] (:transit-params req))))
+  (let [content (into [] (:transit-params req))
+        name (str (.format (java.text.SimpleDateFormat. "yyyy-MM-dd") (java.util.Date.))
+                  "-"
+                  (uuid))]
+    (cond
+      (:s3-cred (:server conf)) (s3-save conf name content)
+      (:csv-path (:server conf)) (file-save conf name content)))
   {:status 204})
 
 (defn index [req]
@@ -48,7 +64,7 @@
   (let [match (bidi/match-route routes (:uri req)
                                 :request-method (:request-method req))]
     (case (:handler match)
-      :index nil
+      :index (do (println req) (resource-request (assoc req :uri "/index.html") "public"))
       :conf (api-conf (assoc req :conf @conf))
       :results (api-results req)
       nil)))

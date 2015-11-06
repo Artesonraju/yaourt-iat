@@ -1,19 +1,23 @@
 FROM clojure:latest
 
-RUN mkdir -p /usr/src/app
+RUN mkdir -p /usr/app
 
-WORKDIR /usr/src/app
+WORKDIR /usr/app
 
-COPY project.clj /usr/src/app/
+COPY project.clj /usr/app/
 
-COPY ./resources /usr/src/app/resources
+COPY ./resources /usr/app/resources
 
 COPY ./src /usr/app/src
 
 RUN lein deps
 
-RUN mv "$(lein uberjar | sed -n 's/^Created \(.*standalone\.jar\)/\1/p')" app-standalone.jar
+RUN ls
 
-EXPOSE 8080
+RUN mv "$(lein uberjar | sed -n 's/^Created \(.*standalone\.jar\)/\1/p')" yaourt-iat.jar
 
-CMD ["java", "-jar", "app-standalone.jar"]
+EXPOSE 10555
+
+VOLUME ["/conf"]
+
+ENTRYPOINT ["java", "-jar", "yaourt-iat.jar"]
