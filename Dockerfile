@@ -12,8 +12,6 @@ COPY ./src /usr/app/src
 
 RUN lein deps
 
-RUN ls
-
 RUN mv "$(lein uberjar | sed -n 's/^Created \(.*standalone\.jar\)/\1/p')" yaourt-iat.jar
 
 EXPOSE 10555
