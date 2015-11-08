@@ -92,11 +92,19 @@
                [k v]
                [k (merge v (zipmap (shuffle [:left :right]) (keys (v :categories))))]))))
 
+(defn all-images
+  [factors]
+  (->> (vals factors)
+       (mapcat #(vals (get % :categories)))
+       (mapcat #(get % :target/image))
+       (map #(identity {:type :target/image :value %}))))
+
 (defn init-data
   [conf]
   (let [factors (fix-factors (conf :factors))
+        images (all-images factors)
         steps (mapcat (partial build-block factors) (conf :blocks))
-        intro {:type :page/intro :text (conf :intro)}
+        intro {:type :page/intro :text (conf :intro) :img-count 0 :error false :loader images}
         end {:type :page/end :text (conf :end)}
         pages (into [] (add-ids (concat [intro] steps [end])))]
     identity {:page/pages pages

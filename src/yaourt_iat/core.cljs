@@ -26,6 +26,18 @@
 (defmulti mutate om/dispatch)
 
 ;; -----------------------------------------------------------------------------
+;; Reconciler
+
+(def parser (om/parser {:read read :mutate mutate}))
+
+(def reconciler
+  (om/reconciler
+    {:state {}
+     :parser parser
+     :send (util/transit-conf)
+     :history 0}))
+
+;; -----------------------------------------------------------------------------
 ;; Components
 
 (defui Word
@@ -71,18 +83,40 @@
 
 (def item (om/factory Item))
 
+(defui ImageLoader
+  static om/Ident
+  (ident [this {:keys [type value]}]
+    [type value])
+  static om/IQuery
+  (query [this]
+    [:type :value])
+  Object
+  (render [this]
+    (let [{:keys [value]} (om/props this)]
+      (dom/img #js {:src value
+                    :className "invisible"
+                    :onLoad #(om/transact! (om/ref->any reconciler [:page/intro 0]) `[(img/loaded)])
+                    :onError #(om/transact! (om/ref->any reconciler [:page/intro 0]) `[(img/error)])}))))
+
+(def image-loader (om/factory ImageLoader))
+
 (defui Intro
   static om/IQuery
   (query [this]
-    [:id :type :text])
+    [:id :type :text :error :img-count {:loader {:target/image (om/get-query ImageLoader)}}])
   Object
   (render [this]
-    (let [{:keys [text] :as props} (om/props this)]
-      (println "Intro" props)
+    (let [{:keys [text loader error img-count loader] :as props} (om/props this)
+          img-total (count loader)]
       (dom/div #js {:className "centred"}
         (dom/h1 nil "Bienvenue !")
         (dom/p nil text)
-        (dom/p nil "Appuyez 'Espace' pour continuer")))))
+        (map image-loader loader)
+        (cond
+          error (dom/p nil "Erreur dans le chargement des images.")
+          (< img-count img-total) (dom/p nil (str "Veuillez patienter. Chargement des images : " img-count "/" img-total))
+          :else (dom/p nil "Appuyer sur Espace pour continuer")
+          )))))
 
 (def intro (om/factory Intro))
 
@@ -227,18 +261,10 @@
       (dom/div nil
         (page (pages current))))))
 
-;; -----------------------------------------------------------------------------
-;; Reconciler
-
-(def parser (om/parser {:read read :mutate mutate}))
-
-(def reconciler
-  (om/reconciler
-    {:state {}
-     :parser parser
-     :send (util/transit-conf)}))
-
 (om/add-root! reconciler RootView (gdom/getElement "app"))
+
+;; -----------------------------------------------------------------------------
+;; Global listener
 
 (defonce key-listener
   (.addEventListener
@@ -250,12 +276,6 @@
 
 ;; -----------------------------------------------------------------------------
 ;; Dispatch mutate
-
-(defmethod mutate 'app/update-title
-  [{:keys [state]} _ {:keys [new-title]}]
-  {:remote true
-   :value [:app/title]
-   :action (fn [] (swap! state assoc :app/title new-title))})
 
 (defn init-result [state]
   (merge state {:results [["left" "right" "target" "factor" "category" "expected" "response" "time"]]
@@ -276,9 +296,12 @@
 
 (defmethod dispatch-click [:page/intro]
   [page state keycode]
-  (if (== (get-in conf [:keys :instruction]) keycode)
-    (init-result (next-page state))
-    state))
+  (let [intro (get-in state [:page/intro 0])
+        img-count (:img-count intro)
+        img-total (count (:loader intro))]
+    (if (and (== (get-in conf [:keys :instruction]) keycode) (>= img-count img-total))
+      (init-result (next-page state))
+      state)))
 
 (defmethod dispatch-click [:page/instruction]
   [page state keycode]
@@ -303,7 +326,6 @@
                          (page :expected)
                          result
                          response-time]]))]
-    (println (into [] (page :left)))
     (if result
       (do 
         (set-timeout (get-in conf [:times :transition]))
@@ -383,3 +405,23 @@
   {:action
    (fn []
      (swap! state #(manage-timeout %)))})
+
+(defn img-loaded
+  [state]
+  (update-in state [:page/intro 0 :img-count] inc))
+
+(defn img-error
+  [state]
+  (assoc-in state [:page/intro 0 :error] true))
+
+(defmethod mutate 'img/loaded
+  [{:keys [state]} _ _]
+  {:action
+   (fn []
+     (swap! state img-loaded))})
+
+(defmethod mutate 'img/error
+  [{:keys [state]} _ _]
+  {:action
+   (fn []
+     (swap! state img-error))})
