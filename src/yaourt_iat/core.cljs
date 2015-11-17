@@ -133,23 +133,26 @@
 
 (def end (om/factory End))
 
-(defui Instruction
-  static om/IQuery
-  (query [this]
-    [:id :type :text])
-  Object
-  (render [this]
-    (let [{:keys [text] :as props} (om/props this)]
-      (dom/div #js {:className "centred"}
-        (dom/h1 nil "Consigne")
-          (map #(dom/p nil %) text)))))
-
-(def instruction (om/factory Instruction))
-
 (defn render-categories
   [class items colors]
   (dom/div #js {:className class}
     (map #(dom/p #js {:className "item" :style #js {:color %1}} %2) colors items)))
+
+(defui Instruction
+  static om/IQuery
+  (query [this]
+    [:id :type :text :left :right :colors])
+  Object
+  (render [this]
+    (let [{:keys [text left right colors] :as props} (om/props this)]
+      (dom/div nil
+        (render-categories "left" left colors)
+        (render-categories "right" right colors)
+        (dom/div #js {:className "centred"}
+          (dom/h1 nil "Consigne")
+            (map #(dom/p nil %) text))))))
+
+(def instruction (om/factory Instruction))
 
 (defui Label
   static om/IQuery

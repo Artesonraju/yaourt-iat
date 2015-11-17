@@ -42,7 +42,8 @@
         server-conf (:server @conf)
         name (str (.format (java.text.SimpleDateFormat. "yyyy-MM-dd") (java.util.Date.))
                   "-"
-                  (uuid))]
+                  (uuid)
+                  ".csv")]
     (cond
       (:s3-cred server-conf) (s3-save server-conf name content)
       (:csv-path server-conf) (file-save server-conf name content)))

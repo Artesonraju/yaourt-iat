@@ -31,7 +31,7 @@
 
 (defn build-left-rights
   [factors block]
-  (shuffle (reduce into (replicate (block :times) (cartesian-merge (map #(left-right (factors %)) (block :factors)))))))
+  (cartesian-merge (map #(left-right (factors %)) (block :factors))))
 
 (defn assoc-left-right
   [fs block steps]
@@ -76,8 +76,10 @@
   [factors block]
   (let [block-factors (block :factors)
         fs (select-keys factors block-factors)
-        steps (shuffle (apply concat (for [[n _] fs] (build-factor fs n block))))]
-    (concat [{:type :page/instruction :text (block :instruction)}]
+        pre-steps (apply concat (for [[n _] fs] (build-factor fs n block)))
+        steps (reduce into (repeatedly (:times block) #(shuffle pre-steps)))
+        random-step (rand-nth steps)]
+    (into [(merge random-step {:type :page/instruction :text (block :instruction)})]
                       (mapcat (juxt #(assoc % :type :page/label)
                                     #(assoc % :type :page/cross)
                                     #(assoc % :type :page/target)
