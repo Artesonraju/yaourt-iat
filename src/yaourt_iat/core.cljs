@@ -10,14 +10,14 @@
 (defmulti read om/dispatch)
 
 (defmethod read :page/current
-  [{:keys [state] :as env} _ {:keys [remote?]}]
+  [{:keys [state] :as env} _ _}]
   (let [st @state]
     (if-let [v (get st :page/current)]
       {:value v :remote true}
       {:remote true})))
 
 (defmethod read :page/pages
-  [{:keys [state] :as env} _ {:keys [remote?]}]
+  [{:keys [state] :as env} _ _}]
   (let [st @state]
     (if-let [v (get st :page/pages)]
       {:value (into [] (map #(get-in st %)) v) :remote true}
@@ -272,7 +272,7 @@
 (defonce key-listener
   (.addEventListener
     js/document
-    "keydown" 
+    "keydown"
     (fn [e]
       (om/transact! (om/class->any reconciler RootView)
         `[(user/click ~{:keycode (.-which e)})]))))
@@ -330,7 +330,7 @@
                          result
                          response-time]]))]
     (if result
-      (do 
+      (do
         (set-timeout (get-in conf [:times :transition]))
         (next-page (next-page s)))
       (next-page s))))
@@ -345,11 +345,11 @@
 (defn wrong-answer
   [side page state]
   (if (= (page :expected) side)
-    (do 
+    (do
       (set-timeout (get-in conf [:times :transition]))
       (next-page state))
     state))
-  
+
 (defmethod dispatch-click [:page/wrong]
   [page state keycode]
   (condp = keycode
