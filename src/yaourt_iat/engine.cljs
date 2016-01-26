@@ -14,12 +14,12 @@
 
 (defn left-right
   [factor]
-  (if (factor :random)
-    (let [categories (keys (factor :categories))
-          f (first categories)
-          s (second categories)]
-      [{:left [f] :right [s]}
-       {:right [f] :left [s]}])
+  (case (factor :random)
+    true (let [categories (keys (factor :categories))
+            f (first categories)
+            s (second categories)]
+            [{:left [f] :right [s]}
+             {:right [f] :left [s]}])
     [{:left [(factor :left)] :right [(factor :right)]}]))
 
 (defn cartesian-merge [colls]
@@ -61,7 +61,7 @@
     (if (some #(= (step :category) %) (step :right))
       :right
       :left)))
-  
+
 (defn build-factor
   [factors name block]
   (->> (build-words factors name)
@@ -90,8 +90,9 @@
 (defn fix-factors
   [factors]
   (into {} (for [[k v] factors]
-             (if (v :random)
-               [k v]
+             (case (v :random)
+               true [k v]
+               false [k (merge v (zipmap [:left :right] (keys (v :categories))))]
                [k (merge v (zipmap (shuffle [:left :right]) (keys (v :categories))))]))))
 
 (defn all-images

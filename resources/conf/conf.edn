@@ -37,7 +37,7 @@
       :instruction [
         "Les catégories du haut ont changé, ainsi que les items. Les instructions restent les mêmes, cependant les catégories changeront de place aléatoirement entre les essais."
         "Lorsque l’item appartient à la catégorie de gauche, appuyez sur la touche D, lorsque l’item appartient à la catégorie de droite, appuyez sur la touche L. Les items ne peuvent appartenir qu’à une catégorie."
-        "Si vous faites une erreur, un message d’erreur apparaitra. Corrigez votre erreur en appuyant sur l’autre touche." 
+        "Si vous faites une erreur, un message d’erreur apparaitra. Corrigez votre erreur en appuyant sur l’autre touche."
         "Cette tâche est chronométrée. ALLEZ LE PLUS VITE POSSIBLE en faisant le moins d’erreurs."
         "Appuyer sur ESPACE pour commencer."
       ]
