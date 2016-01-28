@@ -81,5 +81,5 @@
           :source-paths ["src"]
           :compiler {
             :output-to "resources/public/js/main.js"
-            :optimizations :simple
+            :optimizations :advanced
             :pretty-print false}}]})

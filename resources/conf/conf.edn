@@ -2,7 +2,7 @@
   :factors {
     "personnel" {
       :random true
-      :color "#4F5"
+      :color "#000"
       :categories {
         "MOI" {
           :target/word #{"je"}
@@ -14,7 +14,7 @@
     }
     "pouvoir" {
       :random false
-      :color "#FFF"
+      :color "#000"
       :categories {
         "DOMINANCE" {
           :target/word #{"fort"}

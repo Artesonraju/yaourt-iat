@@ -262,20 +262,17 @@
   (render [this]
     (let [{:keys [page/current page/pages]} (om/props this)]
       (dom/div nil
-        (page (pages current))))))
+        (page (pages current)))))
+  (componentDidMount [this]
+    (.addEventListener
+      js/document
+      "keydown"
+      (fn [e]
+        (om/transact! this
+          `[(user/click ~{:keycode (.-which e)})])))
+    ))
 
 (om/add-root! reconciler RootView (gdom/getElement "app"))
-
-;; -----------------------------------------------------------------------------
-;; Global listener
-
-(defonce key-listener
-  (.addEventListener
-    js/document
-    "keydown"
-    (fn [e]
-      (om/transact! (om/class->any reconciler RootView)
-        `[(user/click ~{:keycode (.-which e)})]))))
 
 ;; -----------------------------------------------------------------------------
 ;; Dispatch mutate
