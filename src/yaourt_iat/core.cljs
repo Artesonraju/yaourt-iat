@@ -272,7 +272,7 @@
 (defonce key-listener
   (.addEventListener
     js/document
-    "keydown" 
+    "keydown"
     (fn [e]
       (om/transact! (om/class->any reconciler RootView)
         `[(user/click ~{:keycode (.-which e)})]))))
@@ -281,8 +281,9 @@
 ;; Dispatch mutate
 
 (defn init-result [state]
-  (merge state {:results [["left" "right" "target" "factor" "category" "expected" "response" "time"]]
-                :page/count (count (:page/pages state))}))
+  (merge state {:results [["left" "right" "target" "factor" "category" "expected" "response" "time" "total-time"]]
+                :page/count (count (:page/pages state))
+                :total-timer (.getTime (js/Date.))}))
 
 (defn next-page [state]
   (update-in state [:page/current] inc))
@@ -317,6 +318,7 @@
 (defn target-answer
   [side page state]
   (let [response-time (- (.getTime (js/Date.)) (state :timer))
+        total-time (- (.getTime (js/Date.)) (state :total-timer))
         result (= (page :expected) side)
         s (update
             state
@@ -328,9 +330,10 @@
                          (page :category)
                          (page :expected)
                          result
-                         response-time]]))]
+                         response-time
+                         total-time]]))]
     (if result
-      (do 
+      (do
         (set-timeout (get-in conf [:times :transition]))
         (next-page (next-page s)))
       (next-page s))))
@@ -345,11 +348,11 @@
 (defn wrong-answer
   [side page state]
   (if (= (page :expected) side)
-    (do 
+    (do
       (set-timeout (get-in conf [:times :transition]))
       (next-page state))
     state))
-  
+
 (defmethod dispatch-click [:page/wrong]
   [page state keycode]
   (condp = keycode
