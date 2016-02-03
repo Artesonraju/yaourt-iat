@@ -1,14 +1,14 @@
 (defproject yaourt-iat "0.1.0-SNAPSHOT"
   :description "Yaourt IAT"
-  :dependencies [[org.clojure/clojure "1.7.0"]
-                 [org.clojure/clojurescript "1.7.170"]
-                 [org.clojure/core.async "0.2.371"]
-                 [org.omcljs/om "1.0.0-alpha18"]
-                 [figwheel-sidecar "0.5.0-SNAPSHOT"
+  :dependencies [[org.clojure/clojure "1.8.0"]
+                 [org.clojure/clojurescript "1.7.228"]
+                 [org.clojure/core.async "0.2.374"]
+                 [org.omcljs/om "1.0.0-alpha30"]
+                 [figwheel-sidecar "0.5.0-6"
                   :scope "provided"
                   :exclusions [org.apache.httpcomponents/httpclient
                                org.apache.httpcomponents/httpcore]]
-                 [bidi "1.20.3"]
+                 [bidi "1.25.0"]
                  [ring/ring "1.4.0"]
                  [org.clojure/data.csv "0.1.3"]
                  [com.cognitect/transit-clj "0.8.281"]
@@ -71,7 +71,7 @@
                                com.amazonaws/aws-java-sdk-waf
                                com.amazonaws/aws-java-sdk-workspaces]]]
   :source-paths ["src"]
-  :plugins [[lein-cljsbuild "1.1.1"]]
+  :plugins [[lein-cljsbuild "1.1.2"]]
   :hooks [leiningen.cljsbuild]
   :omit-source true
   :aot :all

@@ -7,16 +7,18 @@
             [ring.util.response :refer [response file-response resource-response]]
             [ring.middleware.reload :refer [wrap-reload]]
             [yaourt-iat.middleware :refer [wrap-transit-response wrap-transit-params]]
-            [om.next.server :as om]
             [bidi.bidi :as bidi]
             [org.httpkit.server :refer [run-server]]
-            [amazonica.aws.s3 :as s3]))
+            [amazonica.aws.s3 :as s3])
+  (:import (java.text SimpleDateFormat)
+           (java.io PushbackReader StringWriter ByteArrayInputStream)
+           (java.util UUID Date)))
 
 (defn load-edn [filename]
   (with-open [r (io/reader filename)]
-    (read (java.io.PushbackReader. r))))
+    (read (PushbackReader. r))))
 
-(defn uuid [] (str (java.util.UUID/randomUUID)))
+(defn uuid [] (str (UUID/randomUUID)))
 
 (def conf (atom (load-edn "resources/conf/conf.edn")))
 
@@ -30,17 +32,17 @@
 (defn s3-save [server-conf name content]
   (let [cred (select-keys (:s3-cred server-conf) [:access-key :secret-key :endpoint])
         bucket (:bucket (:s3-cred server-conf))
-        writer (java.io.StringWriter.)
+        writer (StringWriter.)
         string (do (csv/write-csv writer content)
-            (.toString writer))
-        input (java.io.ByteArrayInputStream. (.getBytes string))]
+                   (.toString writer))
+        input (ByteArrayInputStream. (.getBytes string))]
     (println "writing result to es3 :" name " in bucket " bucket)
     (s3/put-object cred :bucket-name bucket :key name :input-stream input)))
 
 (go-loop []
   (let [content (<! write-csv)
         server-conf (:server @conf)
-        name (str (.format (java.text.SimpleDateFormat. "yyyy-MM-dd") (java.util.Date.))
+        name (str (.format (SimpleDateFormat. "yyyy-MM-dd") (Date.))
                   "-"
                   (uuid)
                   ".csv")]
@@ -52,9 +54,9 @@
 (def routes
   ["" {"/" :index
        "/conf"
-       {:get  {[""] :conf}}
+           {:get  {[""] :conf}}
        "/results"
-      {:post {[""] :results}}}])
+           {:post {[""] :results}}}])
 
 (defn generate-response [data & [status]]
   {:status  (or status 200)
@@ -68,10 +70,6 @@
   (put! write-csv (into [] (:transit-params req)))
   {:status 204})
 
-(defn index [req]
-  (assoc (resource-response (str "html/index.html") {:root "public"})
-         :headers {"Content-Type" "text/html"}))
-
 (defn handler [req]
   (let [match (bidi/match-route routes (:uri req)
                                 :request-method (:request-method req))]
@@ -82,11 +80,11 @@
       nil)))
 
 (def app
-    (-> handler
-        (wrap-resource "public")
-        wrap-reload
-        wrap-transit-response
-        wrap-transit-params))
+  (-> handler
+      (wrap-resource "public")
+      wrap-reload
+      wrap-transit-response
+      wrap-transit-params))
 
 (defn -main [& [port config-file]]
   (let [port (Integer. (or port 10555))

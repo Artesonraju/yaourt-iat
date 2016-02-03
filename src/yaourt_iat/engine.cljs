@@ -1,25 +1,13 @@
 (ns yaourt-iat.engine)
 
-(defn fixed-left-right
-  [length factor]
-  (repeat length {:left [(factor :left)] :right [(factor :right)]}))
-
-(defn random-left-right
-  [length categories]
-  (let [items [{:left [(first categories)] :right [(second categories)]}
-               {:right [(first categories)] :left [(second categories)]}]]
-    (if (even? length)
-      (shuffle (mapcat #(repeat (/ length 2) %) items))
-      (rest (shuffle (mapcat #(repeat (+ (/ length 2) 1) %) items))))))
-
 (defn left-right
   [factor]
   (case (factor :random)
     true (let [categories (keys (factor :categories))
-            f (first categories)
-            s (second categories)]
-            [{:left [f] :right [s]}
-             {:right [f] :left [s]}])
+               f (first categories)
+               s (second categories)]
+           [{:left [f] :right [s]}
+            {:right [f] :left [s]}])
     [{:left [(factor :left)] :right [(factor :right)]}]))
 
 (defn cartesian-merge [colls]
@@ -42,25 +30,24 @@
 (defn build-category
   [fname factor colors name category]
   (apply concat (for [[type set] category]
-    (map #(identity {
-                     :colors colors
-                     :target {:type type :value %}
-                     :color (factor :color)
-                     :category name
-                     :factor fname}) set))))
+                  (map #(identity {
+                                   :colors colors
+                                   :target {:type type :value %}
+                                   :color (factor :color)
+                                   :category name
+                                   :factor fname}) set))))
 
 (defn build-words [factors name]
   (let [factor (factors name)
-        colors (map #(% :color) (vals factors))
-        categories (keys (factor :categories))]
+        colors (map #(% :color) (vals factors))]
     (apply concat (for [[k c] (factor :categories)]
-        (build-category name factor colors k c)))))
+                    (build-category name factor colors k c)))))
 
 (defn assoc-expected [step]
   (assoc step :expected
-    (if (some #(= (step :category) %) (step :right))
-      :right
-      :left)))
+              (if (some #(= (step :category) %) (step :right))
+                :right
+                :left)))
 
 (defn build-factor
   [factors name block]
@@ -72,6 +59,12 @@
   [coll]
   (map-indexed (fn [id v] (assoc v :id id)) coll))
 
+(defn build-instructions
+  [step instructions]
+  (conj
+    (mapv #(merge step {:type :page/instruction :text %}) instructions)
+    {:type :page/transition :id 0}))
+
 (defn build-block
   [factors block]
   (let [block-factors (block :factors)
@@ -79,13 +72,13 @@
         pre-steps (apply concat (for [[n _] fs] (build-factor fs n block)))
         steps (reduce into (repeatedly (:times block) #(shuffle pre-steps)))
         random-step (rand-nth steps)]
-    (into [(merge random-step {:type :page/instruction :text (block :instruction)})]
-                      (mapcat (juxt #(assoc % :type :page/label)
-                                    #(assoc % :type :page/cross)
-                                    #(assoc % :type :page/target)
-                                    #(assoc % :type :page/wrong)
-                                    #(assoc % :type :page/transition))
-                                    steps))))
+    (into (build-instructions random-step (block :instruction))
+          (mapcat (juxt #(assoc % :type :page/label)
+                        #(assoc % :type :page/cross)
+                        #(assoc % :type :page/target)
+                        #(assoc % :type :page/wrong)
+                        #(assoc % :type :page/transition))
+                  steps))))
 
 (defn fix-factors
   [factors]
@@ -100,7 +93,7 @@
   (->> (vals factors)
        (mapcat #(vals (get % :categories)))
        (mapcat #(get % :target/image))
-       (map #(identity {:type :target/image :value %}))))
+       (mapv #(identity {:type :target/image :value %}))))
 
 (defn init-data
   [conf]
